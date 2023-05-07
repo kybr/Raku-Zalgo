@@ -1,0 +1,16 @@
+#!/usr/bin/env raku
+
+use Terminal::UI 'ui';
+ui.setup(:1panes);
+my $content = '.';
+loop {
+  ui.panes[0].splash($content);
+
+  given ui.get-key {
+    when /q/ { last }
+    default {
+      $content = $_;
+    }
+  }
+}
+ui.shutdown;

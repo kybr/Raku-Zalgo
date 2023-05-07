@@ -1,0 +1,49 @@
+#!/usr/bin/env raku
+
+# this list is adjusted to print in my terminal font
+my @combining =
+  0x0300..0x036F, # Combining Diacritical Marks (0300–036F)
+  0x1AB0..0x1AC0, # Combining Diacritical Marks Extended (1AB0–1AFF)
+  0x1DC0..0x1DF9, # Combining Diacritical Marks Supplement (1DC0–1DFF)
+  0x1DFB..0x1DFF, # ^
+  0x20D0..0x20F0, # Combining Diacritical Marks for Symbols (20D0–20FF)
+  0xFE20..0xFE2F, # Combining Half Marks (FE20–FE2F)
+;
+
+@combining .= map(|*); # flatten all those into one list
+
+multi MAIN(
+  Str $text,       #= "quote" your text if there are spaces
+  Int :$level = 1, #= how many random combining marks to pick
+  Int :$seed = 0,  #= seed for the random picking of marks
+  Bool :$show      #= show all the combining marks
+)
+{
+  when $show {
+    @combining
+      .map({
+	for $text.comb -> $letter {
+	  print $letter ~ .chr, " "
+	}
+	.base(16).say;
+      })
+    # in a block 'when' does not continue when done
+    # we return from MAIN here
+  }
+
+  srand $seed; # plant the seed for .pick later
+
+  print "                               ";
+  $text   # the input text
+    .comb # break into a list chars
+          # for each char, join with a few random marks
+          .map({ ($_, |@combining.pick($level).map(*.chr)).join })
+    .join # join list into string
+    .say  # print
+}
+
+# TODO
+# - Use Cairo to render
+# - Use Cairo to render a spooky GIF
+#
+# see `use-cairo` in playground

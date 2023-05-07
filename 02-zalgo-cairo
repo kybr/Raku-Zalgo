@@ -1,0 +1,59 @@
+#!/usr/bin/env raku
+
+use Cairo;
+#`[
+
+# this list is adjusted to print in my terminal font
+my @combining =
+  0x0300..0x036F, # Combining Diacritical Marks (0300–036F)
+  0x1AB0..0x1AC0, # Combining Diacritical Marks Extended (1AB0–1AFF)
+  0x1DC0..0x1DF9, # Combining Diacritical Marks Supplement (1DC0–1DFF)
+  0x1DFB..0x1DFF, # ^
+  0x20D0..0x20F0, # Combining Diacritical Marks for Symbols (20D0–20FF)
+  0xFE20..0xFE2F, # Combining Half Marks (FE20–FE2F)
+;
+
+@combining .= map(|*); # flatten all those into one list
+
+srand 42;
+
+#  $text   # the input text
+#    .comb # break into a list chars
+#          # for each char, join with a few random marks
+#          .map({ ($_, |@combining.pick($level).map(*.chr)).join })
+#    .join # join list into string
+#    .say  # print
+
+
+given Cairo::Image.create(Cairo::FORMAT_ARGB32, 500, 300) {
+    given Cairo::Context.new($_) {
+        .rgb(1, 1, 1);
+        .rectangle(0, 0, 500, 300);
+	.fill :preserve;
+	#.rgb(1, 1, 1);
+	#.stroke
+    };
+    .write_png("cairo.png")
+}
+]
+#
+
+given Cairo::Image.create(Cairo::FORMAT_ARGB32, 256, 256) {
+    given Cairo::Context.new($_) {
+
+        .select_font_face("Sans",
+                          Cairo::FONT_SLANT_NORMAL,
+                          Cairo::FONT_WEIGHT_NORMAL);
+        .set_font_size(18.0);
+
+
+        my \text = "latent•ville";
+        my Cairo::cairo_text_extents_t \extents = .text_extents(text);
+        my \x = 128.0-(extents.width/2 + extents.x_bearing);
+        my \y = 128.0-(extents.height/2 + extents.y_bearing);
+        .move_to(x, y);
+        .show_text(text);
+    };
+    .write_png("latent-ville.png");
+}
+

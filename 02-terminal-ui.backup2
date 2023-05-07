@@ -1,0 +1,64 @@
+#!/usr/bin/env raku
+
+use Terminal::UI 'ui';
+
+# find all Unicode marks
+# for ^0x10FFFF {
+#   if .chr ~~ / <:M> / {
+#     say .base(16) ~ ': ' ~ ('o' ~ .chr);
+#   }
+# }
+# die;
+
+#my @mark = "mark.txt".IO.lines.map({ ('0x' ~ .split(':')[0]).Int });
+my @line = "mark.txt".IO.lines;
+my @up = @line.grep(/up/).map({ +('0x' ~ .split(':')[0]) });
+my @dn = @line.grep(/dn/).map({ +('0x' ~ .split(':')[0]) });
+my @mark = |@up, |@dn;
+
+ui.setup(:1panes);
+srand 0;
+
+my @content = "latent•ville".comb.map({[.ord]});
+my $ignore = < • >.Set;
+
+my $last;
+
+sub choose-index {
+  state @indices = ^@content.elems .grep({ not @content[$_] ~~ $ignore });
+  $last = @indices.pick;
+  $last
+}
+
+my $log = "";
+
+loop {
+  my $content = @content.map({ .map(*.chr).join }).join;
+  $log ~= "                      $content\n\n\n\n\n\n";
+  ui.panes[0].splash($content);
+  ui.panes[0].put("    " ~ $last);
+
+  given ui.get-key {
+    when /q/ { last }
+    when /a/ {
+      my $n = choose-index;
+      @content[$n].push(@mark.pick);
+    }
+    when /s/ {
+      my $n = choose-index;
+      if @content[$n].elems > 2 {
+        @content[$n] = [@content[$n][0], |@content[$n][1..*].pick(*)];
+      }
+    }
+    when /d/ {
+      my $n = choose-index;
+      if @content[$n].elems > 1 {
+        @content[$n].pop;
+      }
+    }
+  }
+}
+
+ui.shutdown;
+"save.txt".IO.spurt($log);
+
