@@ -3,8 +3,6 @@
 use Terminal::UI 'ui';
 use Data::Dump;
 
-my Bool $use-stdout = False;
-
 my $up = <
   0x030d 0x030e 0x0304 0x0305
   0x033f 0x0311 0x0306 0x0310
@@ -18,8 +16,7 @@ my $up = <
   0x0366 0x0367 0x0368 0x0369
   0x036a 0x036b 0x036c 0x036d
   0x036e 0x036f 0x033e 0x035b
-  0x0346 0x031a
-  >;
+  0x0346 0x031a >;
 
 my $mid = <
   0x0315 0x031b 0x0340 0x0341
@@ -27,8 +24,7 @@ my $mid = <
   0x0328 0x0334 0x0335 0x0336
   0x034f 0x035c 0x035d 0x035e
   0x035f 0x0360 0x0362 0x0338
-  0x0337 0x0361 0x0489
-  >;
+  0x0337 0x0361 0x0489 >;
 
 my $down = <
   0x0316 0x0317 0x0318 0x0319
@@ -40,8 +36,9 @@ my $down = <
   0x033a 0x033b 0x033c 0x0345
   0x0347 0x0348 0x0349 0x034d
   0x034e 0x0353 0x0354 0x0355
-  0x0356 0x0359 0x035a 0x0323
-  >;
+  0x0356 0x0359 0x035a 0x0323 >;
+
+my $in-between = ' ';
 
 sub normal(\m, \σ) { (sqrt -2 * log rand) * cos(τ * rand) * σ + m; }
 
@@ -62,23 +59,24 @@ my @style =
 
 my $N = @style.elems;
 
-my @style-cursor = 0 xx $N;
-my @marker = [] xx $N;
-
-my @mark = |($up, $mid, $down);
 my $cursor = 0;
-my @type = 0 xx $N;
-
+my @style-cursor = 0 xx $N;
+my @thing = {char => "", up => [], mid => [], down => []} xx $N;
+for ^@style.elems -> \i { @thing[i]<char> = @style[i][0]; }
 my $last = "";
 
 ui.setup(:1panes);
 
 srand 0;
+
 loop {
-  my $content = [~] gather for ^$N -> $i {
-    take [~] (@style[$i][@style-cursor[$i]], |@marker[$i].map(*.chr))
-    #take (@style[$i][@style-cursor[$i]], |@marker[$i].map(*.chr)).join;
-  };
+#my $content = [~] gather for @thing {
+#  take (.<char>, |.<up>, |.<mid>, |.<down>).join
+#};
+
+  my $content = @thing.map({
+    (.<char>, |.<up>, |.<mid>, |.<down>).join
+  }).join($in-between);
 
   ui.panes[0].splash($content);
   ui.panes[0].put($last);
@@ -86,16 +84,22 @@ loop {
   given ui.get-key {
     when /q/ { last }
     
-    when /Up/ { @marker[$cursor].push($up.pick) }
+    when ' ' | any < - . _ / \ > { $in-between = $_ }
+    when /Delete/ { $in-between = '' }
     
-    when /Down/ { @marker[$cursor].push($down.pick) }
-
-    when /z/ {
-      if @marker[$cursor].elems > 0 {
-        @marker[$cursor].pop();
-      }
+    when /Up/ {
+      @style-cursor[$cursor]++;
+      my $n = @style[$cursor].elems;
+      @style-cursor[$cursor] = $n - 1 if @style-cursor[$cursor] >= $n;
+      @thing[$cursor]<char> = @style[$cursor][@style-cursor[$cursor]];
     }
     
+    when /Down/ { 
+      @style-cursor[$cursor]--;
+      @style-cursor[$cursor] = 0 if @style-cursor[$cursor] < 0;
+      @thing[$cursor]<char> = @style[$cursor][@style-cursor[$cursor]];
+    }
+
     when /Left/ {
       $cursor--;
       $cursor = $N - 1 if $cursor < 0;
@@ -106,18 +110,30 @@ loop {
       $cursor = 0 if $cursor >= $N;
     }
     
-    when /n/ {
-      @style-cursor[$cursor]--;
-      @style-cursor[$cursor] = 0 if @style-cursor[$cursor] < 0;
+    when /u/ { @thing[$cursor]<up>.push($up.pick.chr) }
+    when /U/ {
+      @thing[$cursor]<up>.pop
+        unless @thing[$cursor]<up>.elems == 0
     }
-    
-    when /m/ {
-      @style-cursor[$cursor]++;
-      my $n = @style[$cursor].elems;
-      $last = $n;
-      @style-cursor[$cursor] = $n - 1 if @style-cursor[$cursor] >= $n;
+
+    when /d/ { @thing[$cursor]<down>.push($down.pick.chr) }
+    when /D/ {
+      @thing[$cursor]<down>.pop
+      	unless @thing[$cursor]<down>.elems == 0
     }
-    
+
+    when /m/ { @thing[$cursor]<mid>.push($mid.pick.chr) }
+    when /M/ {
+      @thing[$cursor]<mid>.pop
+      	unless @thing[$cursor]<mid>.elems == 0
+    }
+
+    when /c/ {
+      @style-cursor = 0 xx $N;
+      @thing = {char => "", up => [], mid => [], down => []} xx $N;
+      for ^@style.elems -> \i { @thing[i]<char> = @style[i][0]; }
+    }
+
     default {
       $last = $_
     }
