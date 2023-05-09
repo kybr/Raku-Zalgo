@@ -42,6 +42,8 @@ my $in-between = ' ';
 
 sub normal(\m, \σ) { (sqrt -2 * log rand) * cos(τ * rand) * σ + m; }
 
+my $log = "";
+
 my @style =
   < l  ʃ  ₗ 𝙡  L  ⓛ   1  λ  ⎣  |            >,
   < a  ɐ  ₐ 𝙖  A  ⓐ   4  α  ∆  ª            >,
@@ -50,7 +52,7 @@ my @style =
   < n  u  ₙ 𝙣  N  ⓝ   ⁿ  ν  ↯  ͷ            >,
   < t  ʇ  ₜ 𝙩  T  ⓣ   +  τ  ⏉  †  ✝︎  ⧷      >,
   < ⚈  ⦿  . •  ●  ☉   ∎  *  ⧳  ⚙︎  ○  ⊙ ⏣ ☀︎  >,
-  < v  ʌ  ᵥ 𝙫  V  ⓥ   ν  ∨  ⩔               >,
+  < v  ʌ  ᵥ 𝙫  V  ⓥ   ν  ∨  ⩔  ∀             >,
   < i  !  ᵢ 𝙞  I  ⓘ   |  ι  ⇡  ¡  ⁱ  ⫯      >,
   < l  ʃ  ₗ 𝙡  L  ⓛ   1  λ  ⎣  |            >,
   < l  ʃ  ₗ 𝙡  L  ⓛ   1  λ  ⎣  |            >,
@@ -77,6 +79,8 @@ loop {
   my $content = @thing.map({
     (.<char>, |.<up>, |.<mid>, |.<down>).join
   }).join($in-between);
+
+  $log ~= "        $content\n";
 
   ui.panes[0].splash($content);
   ui.panes[0].put($last);
@@ -134,10 +138,19 @@ loop {
       for ^@style.elems -> \i { @thing[i]<char> = @style[i][0]; }
     }
 
+    #    when any <0 1 2 3 4 5 6 7 8 9> {
+    #      @style-cursor = $_ xx $N;
+    #      for ^$N -> \i {
+    #        @thing[i]<char> = @style[i][$_];
+    #      }
+    #    }
+
     default {
       $last = $_
     }
   }
 }
 
-ui.shutdown 
+ui.shutdown;
+
+"latent-ville-{(rand*1e6).Int.base(16)}.txt".IO.spurt($log)
